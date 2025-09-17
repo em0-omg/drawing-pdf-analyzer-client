@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Analyzer Demo</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background-color: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+      }
+      .upload-area {
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+        margin: 20px 0;
+        background-color: #fafafa;
+      }
+      input[type="file"] {
+        margin: 20px 0;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+      .toggle-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background-color: #2196f3;
+      }
+      .toggle-button:hover {
+        background-color: #1976d2;
+      }
+      #result {
+        margin-top: 30px;
+        padding: 20px;
+        background-color: #f0f0f0;
+        border-radius: 8px;
+        display: none;
+      }
+      .error {
+        color: #d32f2f;
+        background-color: #ffebee;
+        padding: 15px;
+        border-radius: 4px;
+        margin-top: 20px;
+      }
+      .success {
+        color: #388e3c;
+        background-color: #e8f5e9;
+        padding: 15px;
+        border-radius: 4px;
+      }
+      .image-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        margin-top: 20px;
+      }
+      .image-item h4 {
+        margin: 0 0 8px;
+        color: #333;
+      }
+      .image-item img {
+        max-width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .hidden {
+        display: none;
+      }
+      .spinner {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 20px;
+        color: #555;
+      }
+      .spinner::before {
+        content: "";
+        width: 24px;
+        height: 24px;
+        border: 3px solid #2196f3;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>PDF Analyzer Demo</h1>
+
+      <div class="upload-area">
+        <p>PDFファイルを選択してアップロード</p>
+        <div style="margin: 15px 0;">
+          <label for="apiEndpoint">APIを選択:</label>
+          <select id="apiEndpoint" style="padding: 5px 10px; margin-left: 10px; border-radius: 4px; border: 1px solid #ccc;">
+            <option value="analyze_pdf">テキスト検出 (PF100/PF150)</option>
+            <option value="find_symbols">記号検出 (target1-4)</option>
+          </select>
+        </div>
+        <input type="file" id="pdfFile" accept=".pdf" />
+        <br />
+        <div style="margin: 20px 0;">
+          <label for="splitCount">分割数を選択:</label>
+          <select id="splitCount" style="padding: 5px 10px; margin-left: 10px; border-radius: 4px; border: 1px solid #ccc;">
+            <option value="2">2分割</option>
+            <option value="4" selected>4分割</option>
+            <option value="8">8分割</option>
+            <option value="16">16分割</option>
+          </select>
+        </div>
+        <button id="uploadBtn" onclick="uploadPDF()">アップロード</button>
+      </div>
+
+      <div id="result"></div>
+    </div>
+
+    <script>
+      function toggleSection(id, button) {
+        const target = document.getElementById(id);
+        if (!target) {
+          return;
+        }
+        const isHidden = target.classList.toggle("hidden");
+        if (button) {
+          button.textContent = isHidden ? "解析結果を表示" : "解析結果を隠す";
+        }
+      }
+
+
+      async function uploadPDF() {
+        const fileInput = document.getElementById("pdfFile");
+        const resultDiv = document.getElementById("result");
+        const uploadBtn = document.getElementById("uploadBtn");
+
+        if (!fileInput.files[0]) {
+          resultDiv.innerHTML =
+            '<div class="error">PDFファイルを選択してください。</div>';
+          resultDiv.style.display = "block";
+          return;
+        }
+
+        const escapeHtml = (str) =>
+          str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+        const file = fileInput.files[0];
+        if (file.type !== "application/pdf") {
+          resultDiv.innerHTML =
+            '<div class="error">PDFファイルのみアップロード可能です。</div>';
+          resultDiv.style.display = "block";
+          return;
+        }
+
+        const splitCount = document.getElementById("splitCount").value;
+        
+        const formData = new FormData();
+        formData.append("file", file);
+
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = "アップロード中...";
+        resultDiv.innerHTML = '<div class="spinner">処理中です…</div>';
+        resultDiv.style.display = "block";
+
+        const apiEndpoint = document.getElementById("apiEndpoint").value;
+        
+        try {
+          const response = await fetch(`http://localhost:8080/${apiEndpoint}?split_count=${splitCount}`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          const { filename, page_count, image_format, images, highlighted_images, analysis, symbol_count, total_matches, matches_by_symbol } = data;
+
+          let highlightedSection = "";
+          if (Array.isArray(highlighted_images) && highlighted_images.length > 0) {
+            const highlightedItems = highlighted_images
+              .map(
+                (image, index) => `
+                  <div class="image-item">
+                    <h4>ページ ${index + 1} ハイライト画像</h4>
+                    <img src="data:image/${image_format};base64,${image}" alt="ページ ${index + 1} ハイライト画像" />
+                  </div>
+                `,
+              )
+              .join("");
+            highlightedSection = `
+              <div>
+                <h3>検出結果ハイライト（結合済み）</h3>
+                <div class="image-grid">${highlightedItems}</div>
+              </div>
+            `;
+          }
+
+          let analysisSection = "";
+          if (analysis) {
+            const analysisJson = escapeHtml(JSON.stringify(analysis, null, 2));
+            const sectionId = `analysis-content-${Date.now()}`;
+            analysisSection = `
+              <div style="margin-top: 20px; padding: 20px; background-color: #f9f9f9; border-radius: 8px; border-left: 4px solid #4caf50;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                  <h3 style="margin: 0;">Gemini AI 解析結果</h3>
+                  <button class="toggle-button" onclick="toggleSection('${sectionId}', this)">解析結果を表示</button>
+                </div>
+                <pre id="${sectionId}" class="hidden" style="white-space: pre-wrap; line-height: 1.6; color: #333; margin: 16px 0 0;">${analysisJson}</pre>
+              </div>
+            `;
+          }
+          
+          // Symbol detection results
+          let symbolSection = "";
+          if (symbol_count !== undefined && total_matches !== undefined) {
+            const matchesJson = escapeHtml(JSON.stringify(matches_by_symbol, null, 2));
+            const matchesSectionId = `matches-content-${Date.now()}`;
+            symbolSection = `
+              <div style="margin-top: 20px; padding: 20px; background-color: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                <h3 style="margin: 0 0 12px;">記号検出結果</h3>
+                <p><strong>検出対象記号数:</strong> ${symbol_count}</p>
+                <p><strong>総検出数:</strong> ${total_matches}</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px;">
+                  <h4 style="margin: 0;">記号別検出詳細</h4>
+                  <button class="toggle-button" onclick="toggleSection('${matchesSectionId}', this)">詳細を表示</button>
+                </div>
+                <pre id="${matchesSectionId}" class="hidden" style="white-space: pre-wrap; line-height: 1.6; color: #333; margin: 16px 0 0;">${matchesJson}</pre>
+              </div>
+            `;
+          }
+
+          resultDiv.innerHTML = `
+            <div class="success">
+              <h3>アップロード成功！</h3>
+              <p><strong>ファイル名:</strong> ${filename}</p>
+              <p><strong>ページ数:</strong> ${page_count}</p>
+              <p><strong>画像フォーマット:</strong> ${image_format}</p>
+              <p><strong>分割数:</strong> ${splitCount}分割</p>
+            </div>
+            ${analysisSection}
+            ${symbolSection}
+            ${highlightedSection}
+          `;
+          resultDiv.style.display = "block";
+        } catch (error) {
+          resultDiv.innerHTML = `<div class="error">エラー: ${error.message}</div>`;
+          resultDiv.style.display = "block";
+        } finally {
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = "アップロード";
+        }
+      }
+    </script>
+  </body>
+</html>
