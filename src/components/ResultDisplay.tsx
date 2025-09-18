@@ -65,7 +65,7 @@ export default function ResultDisplay({ result, error, isLoading, splitCount }: 
       {result.analysis && (
         <div className="mt-5 p-5 bg-gray-50 rounded-lg border-l-4 border-green-500">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Gemini AI 解析結果</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Gemini AI 解析結果</h3>
             <button
               onClick={() => setShowAnalysis(!showAnalysis)}
               className="px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 flex items-center gap-2"
@@ -105,11 +105,11 @@ export default function ResultDisplay({ result, error, isLoading, splitCount }: 
 
       {result.highlighted_images && result.highlighted_images.length > 0 && (
         <div className="mt-8">
-          <h3 className="text-lg font-semibold mb-4">検出結果ハイライト（結合済み）</h3>
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">検出結果ハイライト（結合済み）</h3>
           <div className="grid grid-cols-1 gap-5">
             {result.highlighted_images.map((image, index) => (
               <div key={index} className="bg-white p-4 rounded-lg shadow">
-                <h4 className="font-medium mb-2">ページ {index + 1} ハイライト画像</h4>
+                <h4 className="font-medium mb-2 text-gray-800">ページ {index + 1} ハイライト画像</h4>
                 <img
                   src={`data:image/${result.image_format};base64,${image}`}
                   alt={`ページ ${index + 1} ハイライト画像`}
