@@ -1,25 +1,33 @@
+export interface Detection {
+  class_name: string;
+  confidence: number;
+  bbox: number[];
+  page: number;
+  split_index: number;
+}
+
 export interface AnalysisResult {
   filename: string;
-  page_count: number;
   image_format: string;
-  images?: string[];
-  highlighted_images?: string[];
-  analysis?: any;
-  symbol_count?: number;
-  total_matches?: number;
-  matches_by_symbol?: any;
+  page_count: number;
+  split_count: number;
+  total_splits: number;
+  images: string[];
+  highlighted_images: string[];
+  detections: Detection[];
+  detection_count: number;
 }
 
 export async function uploadPDF(
   file: File,
-  apiEndpoint: string,
-  splitCount: string
+  splitCount: string,
+  conf: string = '0.25'
 ): Promise<AnalysisResult> {
   const formData = new FormData();
   formData.append('file', file);
 
   const response = await fetch(
-    `/api/${apiEndpoint}?split_count=${splitCount}`,
+    `/api/yolo_analyze_pdf?split_count=${splitCount}&conf=${conf}`,
     {
       method: 'POST',
       body: formData,

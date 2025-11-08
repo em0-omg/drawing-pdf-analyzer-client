@@ -2,28 +2,34 @@
 
 import { useState } from 'react';
 
+interface Detection {
+  class_name: string;
+  confidence: number;
+  bbox: number[];
+  page: number;
+  split_index: number;
+}
+
 interface AnalysisResult {
   filename: string;
-  page_count: number;
   image_format: string;
-  images?: string[];
-  highlighted_images?: string[];
-  analysis?: any;
-  symbol_count?: number;
-  total_matches?: number;
-  matches_by_symbol?: any;
+  page_count: number;
+  split_count: number;
+  total_splits: number;
+  images: string[];
+  highlighted_images: string[];
+  detections: Detection[];
+  detection_count: number;
 }
 
 interface ResultDisplayProps {
   result: AnalysisResult | null;
   error: string | null;
   isLoading: boolean;
-  splitCount: string;
 }
 
-export default function ResultDisplay({ result, error, isLoading, splitCount }: ResultDisplayProps) {
-  const [showAnalysis, setShowAnalysis] = useState(false);
-  const [showMatches, setShowMatches] = useState(false);
+export default function ResultDisplay({ result, error, isLoading }: ResultDisplayProps) {
+  const [showDetections, setShowDetections] = useState(false);
 
   if (isLoading) {
     return (
@@ -46,12 +52,6 @@ export default function ResultDisplay({ result, error, isLoading, splitCount }: 
     return null;
   }
 
-  const escapeHtml = (str: string) =>
-    str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
   return (
     <div className="mt-8">
       <div className="p-4 bg-green-50 text-green-700 rounded-lg">
@@ -59,57 +59,62 @@ export default function ResultDisplay({ result, error, isLoading, splitCount }: 
         <p><strong>ファイル名:</strong> {result.filename}</p>
         <p><strong>ページ数:</strong> {result.page_count}</p>
         <p><strong>画像フォーマット:</strong> {result.image_format}</p>
-        <p><strong>分割数:</strong> {splitCount}分割</p>
+        <p><strong>分割数:</strong> {result.split_count}分割</p>
+        <p><strong>総分割画像数:</strong> {result.total_splits}</p>
+        <p><strong>検出数:</strong> {result.detection_count}</p>
       </div>
 
-      {result.analysis && (
-        <div className="mt-5 p-5 bg-gray-50 rounded-lg border-l-4 border-green-500">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-800">Gemini AI 解析結果</h3>
-            <button
-              onClick={() => setShowAnalysis(!showAnalysis)}
-              className="px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 flex items-center gap-2"
-            >
-              {showAnalysis ? '解析結果を隠す' : '解析結果を表示'}
-            </button>
-          </div>
-          {showAnalysis && (
-            <pre className="mt-4 whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
-              {escapeHtml(JSON.stringify(result.analysis, null, 2))}
-            </pre>
-          )}
-        </div>
-      )}
-
-      {result.symbol_count !== undefined && result.total_matches !== undefined && (
+      {result.detections && result.detections.length > 0 && (
         <div className="mt-5 p-5 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-          <h3 className="text-lg font-semibold mb-3">記号検出結果</h3>
-          <p><strong>検出対象記号数:</strong> {result.symbol_count}</p>
-          <p><strong>総検出数:</strong> {result.total_matches}</p>
-          <div className="flex justify-between items-center mt-3">
-            <h4 className="font-semibold">記号別検出詳細</h4>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-800">YOLO 検出結果</h3>
             <button
-              onClick={() => setShowMatches(!showMatches)}
+              onClick={() => setShowDetections(!showDetections)}
               className="px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 flex items-center gap-2"
             >
-              {showMatches ? '詳細を隠す' : '詳細を表示'}
+              {showDetections ? '検出結果を隠す' : '検出結果を表示'}
             </button>
           </div>
-          {showMatches && (
-            <pre className="mt-4 whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
-              {escapeHtml(JSON.stringify(result.matches_by_symbol, null, 2))}
-            </pre>
+          {showDetections && (
+            <div className="mt-4">
+              <div className="overflow-x-auto">
+                <table className="min-w-full bg-white rounded-lg overflow-hidden">
+                  <thead className="bg-blue-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">クラス</th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">信頼度</th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">ページ</th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">分割インデックス</th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">境界ボックス</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.detections.map((detection, index) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                        <td className="px-4 py-2 text-sm text-gray-800">{detection.class_name}</td>
+                        <td className="px-4 py-2 text-sm text-gray-800">{(detection.confidence * 100).toFixed(1)}%</td>
+                        <td className="px-4 py-2 text-sm text-gray-800">{detection.page}</td>
+                        <td className="px-4 py-2 text-sm text-gray-800">{detection.split_index}</td>
+                        <td className="px-4 py-2 text-sm text-gray-800 font-mono">
+                          [{detection.bbox.map(v => v.toFixed(1)).join(', ')}]
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </div>
       )}
 
       {result.highlighted_images && result.highlighted_images.length > 0 && (
         <div className="mt-8">
-          <h3 className="text-lg font-semibold mb-4 text-gray-800">検出結果ハイライト（結合済み）</h3>
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">検出結果ハイライト画像</h3>
           <div className="grid grid-cols-1 gap-5">
             {result.highlighted_images.map((image, index) => (
               <div key={index} className="bg-white p-4 rounded-lg shadow">
-                <h4 className="font-medium mb-2 text-gray-800">ページ {index + 1} ハイライト画像</h4>
+                <h4 className="font-medium mb-2 text-gray-800">ページ {index + 1}</h4>
                 <img
                   src={`data:image/${result.image_format};base64,${image}`}
                   alt={`ページ ${index + 1} ハイライト画像`}
