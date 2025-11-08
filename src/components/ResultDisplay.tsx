@@ -3,11 +3,12 @@
 import { useState } from 'react';
 
 interface Detection {
+  segment_index: number;
+  class_id: number;
   class_name: string;
   confidence: number;
+  color: number[];
   bbox: number[];
-  page: number;
-  split_index: number;
 }
 
 interface AnalysisResult {
@@ -15,7 +16,6 @@ interface AnalysisResult {
   image_format: string;
   page_count: number;
   split_count: number;
-  total_splits: number;
   images: string[];
   highlighted_images: string[];
   detections: Detection[];
@@ -60,7 +60,6 @@ export default function ResultDisplay({ result, error, isLoading }: ResultDispla
         <p><strong>ページ数:</strong> {result.page_count}</p>
         <p><strong>画像フォーマット:</strong> {result.image_format}</p>
         <p><strong>分割数:</strong> {result.split_count}分割</p>
-        <p><strong>総分割画像数:</strong> {result.total_splits}</p>
         <p><strong>検出数:</strong> {result.detection_count}</p>
       </div>
 
@@ -83,8 +82,7 @@ export default function ResultDisplay({ result, error, isLoading }: ResultDispla
                     <tr>
                       <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">クラス</th>
                       <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">信頼度</th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">ページ</th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">分割インデックス</th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">セグメントインデックス</th>
                       <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">境界ボックス</th>
                     </tr>
                   </thead>
@@ -93,8 +91,7 @@ export default function ResultDisplay({ result, error, isLoading }: ResultDispla
                       <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
                         <td className="px-4 py-2 text-sm text-gray-800">{detection.class_name}</td>
                         <td className="px-4 py-2 text-sm text-gray-800">{(detection.confidence * 100).toFixed(1)}%</td>
-                        <td className="px-4 py-2 text-sm text-gray-800">{detection.page}</td>
-                        <td className="px-4 py-2 text-sm text-gray-800">{detection.split_index}</td>
+                        <td className="px-4 py-2 text-sm text-gray-800">{detection.segment_index}</td>
                         <td className="px-4 py-2 text-sm text-gray-800 font-mono">
                           [{detection.bbox.map(v => v.toFixed(1)).join(', ')}]
                         </td>

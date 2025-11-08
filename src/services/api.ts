@@ -1,9 +1,10 @@
 export interface Detection {
+  segment_index: number;
+  class_id: number;
   class_name: string;
   confidence: number;
+  color: number[];
   bbox: number[];
-  page: number;
-  split_index: number;
 }
 
 export interface AnalysisResult {
@@ -11,7 +12,6 @@ export interface AnalysisResult {
   image_format: string;
   page_count: number;
   split_count: number;
-  total_splits: number;
   images: string[];
   highlighted_images: string[];
   detections: Detection[];
