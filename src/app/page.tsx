@@ -24,7 +24,7 @@ export default function Home() {
     setResult(null);
 
     try {
-      const analysisResult = await uploadPDF(selectedFile, "16", confidence);
+      const analysisResult = await uploadPDF(selectedFile, "8", confidence);
       setResult(analysisResult);
     } catch (err) {
       setError(
