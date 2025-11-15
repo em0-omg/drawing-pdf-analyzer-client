@@ -6,9 +6,18 @@ interface Detection {
   segment_index: number;
   class_id: number;
   class_name: string;
+  japanese_name?: string;
   confidence: number;
   color: number[];
   bbox: number[];
+}
+
+interface PairDetection {
+  ventilation: Detection;
+  label: Detection;
+  distance: number;
+  pair_type: string;
+  page_index: number;
 }
 
 interface AnalysisResult {
@@ -20,6 +29,10 @@ interface AnalysisResult {
   highlighted_images: string[];
   detections: Detection[];
   detection_count: number;
+  pairs?: PairDetection[];
+  pair_summary?: Record<string, number>;
+  total_pairs?: number;
+  unpaired_detections?: Record<string, number>;
 }
 
 interface ResultDisplayProps {
@@ -30,6 +43,7 @@ interface ResultDisplayProps {
 
 export default function ResultDisplay({ result, error, isLoading }: ResultDisplayProps) {
   const [showDetections, setShowDetections] = useState(false);
+  const [showPairs, setShowPairs] = useState(true);
 
   if (isLoading) {
     return (
@@ -61,6 +75,9 @@ export default function ResultDisplay({ result, error, isLoading }: ResultDispla
         <p><strong>画像フォーマット:</strong> {result.image_format}</p>
         <p><strong>分割数:</strong> {result.split_count}分割</p>
         <p><strong>検出数:</strong> {result.detection_count}</p>
+        {result.total_pairs !== undefined && (
+          <p><strong>ペア数:</strong> {result.total_pairs}</p>
+        )}
       </div>
 
       {result.detections && result.detections.length > 0 && (
@@ -95,6 +112,52 @@ export default function ResultDisplay({ result, error, isLoading }: ResultDispla
                         <td className="px-4 py-2 text-sm text-gray-800 font-mono">
                           [{detection.bbox.map(v => v.toFixed(1)).join(', ')}]
                         </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {result.pairs && result.pairs.length > 0 && (
+        <div className="mt-5 p-5 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-800">ペアリング結果</h3>
+            <button
+              onClick={() => setShowPairs(!showPairs)}
+              className="px-4 py-2 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 flex items-center gap-2"
+            >
+              {showPairs ? 'ペア結果を隠す' : 'ペア結果を表示'}
+            </button>
+          </div>
+          {showPairs && (
+            <div className="mt-4">
+              <div className="overflow-x-auto">
+                <table className="min-w-full bg-white rounded-lg overflow-hidden">
+                  <thead className="bg-purple-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">ページ</th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">換気種別</th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">ラベル</th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">距離 (px)</th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">ペアタイプ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.pairs.map((pair, index) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                        <td className="px-4 py-2 text-sm text-gray-800">{pair.page_index + 1}</td>
+                        <td className="px-4 py-2 text-sm text-gray-800">
+                          {pair.ventilation.japanese_name || pair.ventilation.class_name}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-800">
+                          {pair.label.japanese_name || pair.label.class_name}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-800">{pair.distance.toFixed(1)}</td>
+                        <td className="px-4 py-2 text-sm text-gray-800 font-mono">{pair.pair_type}</td>
                       </tr>
                     ))}
                   </tbody>

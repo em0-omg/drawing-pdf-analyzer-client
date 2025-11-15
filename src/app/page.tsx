@@ -3,12 +3,14 @@
 import { useState } from "react";
 import PDFUpload from "@/components/PDFUpload";
 import ConfidenceSelector from "@/components/ConfidenceSelector";
+import MaxDistanceSelector from "@/components/MaxDistanceSelector";
 import ResultDisplay from "@/components/ResultDisplay";
 import { uploadPDF, AnalysisResult } from "@/services/api";
 
 export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [confidence, setConfidence] = useState("0.25");
+  const [maxDistance, setMaxDistance] = useState("250");
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,7 +26,7 @@ export default function Home() {
     setResult(null);
 
     try {
-      const analysisResult = await uploadPDF(selectedFile, "8", confidence);
+      const analysisResult = await uploadPDF(selectedFile, "8", confidence, maxDistance);
       setResult(analysisResult);
     } catch (err) {
       setError(
@@ -44,6 +46,7 @@ export default function Home() {
           </h1>
 
           <ConfidenceSelector value={confidence} onChange={setConfidence} />
+          <MaxDistanceSelector value={maxDistance} onChange={setMaxDistance} />
           <PDFUpload onFileSelect={setSelectedFile} disabled={isLoading} />
 
           <div className="text-center mt-6">
