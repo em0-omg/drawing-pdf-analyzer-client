@@ -122,51 +122,64 @@ export default function ResultDisplay({ result, error, isLoading }: ResultDispla
         </div>
       )}
 
-      {result.pairs && result.pairs.length > 0 && (
-        <div className="mt-5 p-5 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-800">ペアリング結果</h3>
-            <button
-              onClick={() => setShowPairs(!showPairs)}
-              className="px-4 py-2 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 flex items-center gap-2"
-            >
-              {showPairs ? 'ペア結果を隠す' : 'ペア結果を表示'}
-            </button>
-          </div>
-          {showPairs && (
-            <div className="mt-4">
-              <div className="overflow-x-auto">
-                <table className="min-w-full bg-white rounded-lg overflow-hidden">
-                  <thead className="bg-purple-100">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">ページ</th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">換気種別</th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">ラベル</th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">距離 (px)</th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">ペアタイプ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.pairs.map((pair, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                        <td className="px-4 py-2 text-sm text-gray-800">{pair.page_index + 1}</td>
-                        <td className="px-4 py-2 text-sm text-gray-800">
-                          {pair.ventilation.japanese_name || pair.ventilation.class_name}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-gray-800">
-                          {pair.label.japanese_name || pair.label.class_name}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-gray-800">{pair.distance.toFixed(1)}</td>
-                        <td className="px-4 py-2 text-sm text-gray-800 font-mono">{pair.pair_type}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      {result.pairs && result.pairs.length > 0 && (() => {
+        // ペアを換気種別でグループ化
+        const supplyPairs: Record<string, number> = {};
+        const exhaustPairs: Record<string, number> = {};
+
+        result.pairs.forEach(pair => {
+          const ventilationType = pair.ventilation.class_name;
+          const labelName = pair.label.japanese_name || pair.label.class_name;
+
+          if (ventilationType === 'Supply') {
+            supplyPairs[labelName] = (supplyPairs[labelName] || 0) + 1;
+          } else if (ventilationType === 'Exhaust') {
+            exhaustPairs[labelName] = (exhaustPairs[labelName] || 0) + 1;
+          }
+        });
+
+        return (
+          <div className="mt-5 p-5 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-800">ペアリング結果</h3>
+              <button
+                onClick={() => setShowPairs(!showPairs)}
+                className="px-4 py-2 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 flex items-center gap-2"
+              >
+                {showPairs ? 'ペア結果を隠す' : 'ペア結果を表示'}
+              </button>
             </div>
-          )}
-        </div>
-      )}
+            {showPairs && (
+              <div className="mt-4 bg-white p-4 rounded-lg">
+                {Object.keys(exhaustPairs).length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="font-semibold text-gray-800 mb-2">排気</h4>
+                    <ul className="list-none space-y-1">
+                      {Object.entries(exhaustPairs).map(([label, count]) => (
+                        <li key={label} className="text-gray-700 pl-2">
+                          • {label} x {count}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {Object.keys(supplyPairs).length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-2">給気</h4>
+                    <ul className="list-none space-y-1">
+                      {Object.entries(supplyPairs).map(([label, count]) => (
+                        <li key={label} className="text-gray-700 pl-2">
+                          • {label} x {count}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {result.highlighted_images && result.highlighted_images.length > 0 && (
         <div className="mt-8">
